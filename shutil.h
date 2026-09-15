@@ -59,7 +59,7 @@ typedef struct SHUI_Array *SHUArray;
 /// @param retArray Address of the array buffer.
 /// @param sizeOfItem Size of the item type to store in.
 /// @param initialCapacity How many items can hold in this SHUArray. Can be resized later on.
-/// @return RJ_OK on success, or RJ_ERROR_ALLOCATION if internal allocation fails.
+/// @return SHUResult_Ok on success, or SHUResult_ErrAllocation if internal allocation fails.
 SHUResult SHUArray_Create(SHUArray *retArray, usz sizeOfItem, usz initialCapacity);
 
 /// @brief Destroys a SHUArray.
@@ -84,7 +84,7 @@ usz SHUArray_GetItemSize(SHUArray array);
 /// @brief Resize function for SHUArray. Can enlarge or trunc the SHUArray.
 /// @param retArray Pointer to the SHUArray to resize.
 /// @param newCapacity Capacity to increase or decrease.
-/// @return RJ_OK on success, or RJ_ERROR_ALLOCATION if internal allocation fails.
+/// @return SHUResult_Ok on success, or SHUResult_ErrAllocation if internal allocation fails.
 /// @note Removes the elements if newCapacity is smaller than current count
 SHUResult SHUArray_Resize(SHUArray *retArray, usz newCapacity);
 
@@ -102,43 +102,42 @@ void SHUArray_Set(SHUArray array, usz index, const void *item);
 /// @brief Adds an item to the end of the SHUArray.
 /// @param array Pointer to the SHUArray to push item.
 /// @param item Item to push to SHUArray.
-/// @return The address of the added item
+/// @return SHUResult_Ok on success, or SHUResult_ErrAllocation if internal allocation fails.
 SHUResult SHUArray_Push(SHUArray *array, const void *item);
 
 /// @brief Adds a range of items to the and of the SHUArray.
 /// @param array Pointer to the SHUArray to push items to.
 /// @param itemCount Number of items to push.
 /// @param items Pointer to the first item to push.
-/// @return RJ_OK on success, or RJ_ERROR_ALLOCATION if internal allocation fails.
+/// @return SHUResult_Ok on success, or SHUResult_ErrAllocation if internal allocation fails.
 SHUResult SHUArray_PushRange(SHUArray *array, usz itemCount, const void *items);
 
 /// @brief Adds an item at a specific index in the SHUArray. Shifting the tail part.
 /// @param array Pointer to the SHUArray to insert item to.
 /// @param index Index to insert item at.
 /// @param item Pointer to the item to insert.
-/// @param swap Puts the item in index to tail if true, shifts all the latter items otherwise.
-/// @return RJ_OK on success, or RJ_ERROR_ALLOCATION if internal allocation fails.
-SHUResult SHUArray_Insert(SHUArray *array, usz index, const void *item, bool swap);
+/// @return SHUResult_Ok on success, or SHUResult_ErrAllocation if internal allocation fails.
+SHUResult SHUArray_Insert(SHUArray *array, usz index, const void *item);
 
-/// @brief Adds a range of items at a specific index in the SHUArray.
+/// @brief Adds a range of items at a specific index in the SHUArray. Shifting the tail part.
 /// @param array Pointer to the SHUArray to insert item to.
 /// @param index Index to insert item at.
 /// @param itemCount Number of items to insert.
 /// @param items Pointer to the first item to insert.
-/// @return RJ_OK on success, or RJ_ERROR_ALLOCATION if internal allocation fails.
+/// @return SHUResult_Ok on success, or SHUResult_ErrAllocation if internal allocation fails.
 SHUResult SHUArray_InsertRange(SHUArray *array, usz index, usz itemCount, const void *items);
 
 /// @brief Removes the last item in the array.
 /// @param array Pointer to the SHUArray to pop item from.
 /// @param retItem Buffer to write the popped item. Leave NULL if not needed.
-/// @return RJ_OK on success, or RJ_ERROR_ALLOCATION if internal allocation fails.
+/// @return SHUResult_Ok on success, or SHUResult_ErrAllocation if internal allocation fails.
 SHUResult SHUArray_Pop(SHUArray *array, void *retItem);
 
 /// @brief Removes a range of items from end of the array.
 /// @param array Pointer to the SHUArray to pop items from.
 /// @param retItem Buffer to write popped items. Leave NULL if not needed.
 /// @param itemCount Item count to remove.
-/// @return RJ_OK on success, or RJ_ERROR_ALLOCATION if internal allocation fails.
+/// @return SHUResult_Ok on success, or SHUResult_ErrAllocation if internal allocation fails.
 SHUResult SHUArray_PopRange(SHUArray *array, usz itemCount, void *retItems);
 
 /// @brief Removes the item at the given index.
@@ -146,21 +145,22 @@ SHUResult SHUArray_PopRange(SHUArray *array, usz itemCount, void *retItems);
 /// @param index Index to remove item at.
 /// @param retItem Buffer to write the removed item. Leave NULL if not needed.
 /// @param swap Puts the tail item to index if true, shifts all the latter items otherwise.
-/// @return RJ_OK on success, or RJ_ERROR_ALLOCATION if internal allocation fails.
-SHUResult ListArray_Remove(SHUArray *array, usz index, void *retItem, bool swap);
+/// @return SHUResult_Ok on success, or SHUResult_ErrAllocation if internal allocation fails.
+SHUResult SHUArray_Remove(SHUArray *array, usz index, void *retItem, bool swap);
 
 /// @brief Removes a range of items from starting index.
 /// @param array Pointer to the SHUArray to remove items from.
 /// @param index Index to start removing items from.
 /// @param itemCount Item count to remove.
 /// @param retItem Buffer to write removed items. Leave NULL if not needed.
-/// @return RJ_OK on success, or RJ_ERROR_ALLOCATION if internal allocation fails.
-SHUResult ListArray_RemoveRange(SHUArray *array, usz index, usz itemCount, void *retItems);
+/// @param swap Puts the tail items to index if true, shifts all the latter items otherwise.
+/// @return SHUResult_Ok on success, or SHUResult_ErrAllocation if internal allocation fails.
+SHUResult SHUArray_RemoveRange(SHUArray *array, usz index, usz itemCount, void *retItems, bool swap);
 
 /// @brief Empties the array and resizes it.
 /// @param array Array address to clear.
-/// @param newCapacity New capacity of the array. Pass it 0 to leave it as is.
-/// @return RJ_OK on success, or RJ_ERROR_ALLOCATION if internal allocation fails.
+/// @param newCapacity New capacity of the array.
+/// @return SHUResult_Ok on success, or SHUResult_ErrAllocation if internal allocation fails.
 SHUResult SHUArray_Clear(SHUArray *array, usz newCapacity);
 
 #endif
@@ -221,9 +221,17 @@ typedef struct SHUI_Array
                                                        "Index out of range : index '%zu', array.count '%zu', array.capacity '%zu', array.itemSize '%zu'", \
                                                        (index), (array)->count, (array)->capacity, (array)->itemSize)
 
+#define SHUI_ArrayAssertRemoval(array, itemCount) SHU_Assert((array)->count >= (itemCount),                                                 \
+                                                             "Cannot remove more items than existing : array.count '%zu', itemCount '%zu'", \
+                                                             (array)->count, (itemCount));
+
+#define SHUI_ArrayAssertSize(size) SHU_Assert((size) != 0, "0 value for size variable " #size)
+
 SHUResult SHUArray_Create(SHUArray *retArray, usz sizeOfItem, usz initialCapacity)
 {
     SHU_AssertNullPointer(retArray);
+    SHUI_ArrayAssertSize(sizeOfItem);
+    SHUI_ArrayAssertSize(initialCapacity);
 
     SHUArray array = (SHUArray)malloc(sizeof(SHUI_Array) + initialCapacity * sizeOfItem); //! important
     if (array == NULL)
@@ -273,19 +281,21 @@ SHUResult SHUArray_Resize(SHUArray *retArray, usz newCapacity)
 {
     SHU_AssertNullPointer(retArray);
     SHU_AssertNullPointer(*retArray);
+    SHUI_ArrayAssertSize(newCapacity);
 
-    SHUArray newArray = (SHUArray)realloc(*retArray, sizeof(SHUI_Array) + newCapacity * (*retArray)->itemSize); //! important
-    if (newArray == NULL)
+    SHUArray resized = (SHUArray)realloc(*retArray, sizeof(SHUI_Array) + newCapacity * (*retArray)->itemSize);
+    if (resized == NULL)
     {
         return SHUResult_ErrAllocation;
     }
 
-    // fixing the header
-    newArray->capacity = newCapacity;
-    newArray->count = (*retArray)->count;
-    newArray->itemSize = (*retArray)->itemSize;
+    resized->capacity = newCapacity;
+    if (resized->count > newCapacity)
+    {
+        resized->count = newCapacity;
+    }
 
-    *retArray = newArray;
+    *retArray = resized;
 
     return SHUResult_Ok;
 }
@@ -301,6 +311,7 @@ const void *SHUArray_Get(SHUArray array, usz index)
 void SHUArray_Set(SHUArray array, usz index, const void *item)
 {
     SHU_AssertNullPointer(array);
+    SHU_AssertNullPointer(item);
     SHUI_ArrayAssertIndex(array, index);
 
     memcpy(SHUI_ArrayGetItem(array, index), item, array->itemSize);
@@ -308,87 +319,31 @@ void SHUArray_Set(SHUArray array, usz index, const void *item)
 
 SHUResult SHUArray_Push(SHUArray *array, const void *item)
 {
-    SHU_AssertNullPointer(array);
-    SHU_AssertNullPointer(*array);
-    SHU_AssertNullPointer(item);
-
-    SHUArray realArray = *array;
-
-    if (realArray->count == realArray->capacity) // currently full
-    {
-        SHU_ReturnResult(SHUArray_Resize(array, realArray->capacity * SHUTIL_ARRAY_EXPAND));
-    }
-
-    realArray = *array;
-
-    memcpy(SHUI_ArrayGetItem(realArray, realArray->count), item, realArray->itemSize);
-
-    realArray->count++;
-
-    return SHUResult_Ok;
+    return SHUArray_PushRange(array, 1, item);
 }
 
 SHUResult SHUArray_PushRange(SHUArray *array, usz itemCount, const void *items)
 {
     SHU_AssertNullPointer(array);
-    SHU_AssertNullPointer(*array);
-    SHU_AssertNullPointer(items);
 
-    SHUArray realArray = *array;
-    usz newSize = realArray->count + itemCount;
-
-    if (newSize > realArray->capacity) // will be full
-    {
-        SHU_ReturnResult(SHUArray_Resize(array, newSize * SHUTIL_ARRAY_EXPAND));
-    }
-
-    realArray = *array;
-
-    memcpy(SHUI_ArrayGetItem(realArray, realArray->count), items, itemCount * realArray->itemSize);
-
-    realArray->count += itemCount;
-
-    return SHUResult_Ok;
+    return SHUArray_InsertRange(array, SHUArray_GetCount(*array), itemCount, items);
 }
 
-SHUResult SHUArray_Insert(SHUArray *array, usz index, const void *item, bool swap)
+SHUResult SHUArray_Insert(SHUArray *array, usz index, const void *item)
 {
-    SHU_AssertNullPointer(array);
-    SHU_AssertNullPointer(*array);
-    SHUI_ArrayAssertIndex(*array, index);
-    SHU_AssertNullPointer(item);
-
-    SHUArray realArray = *array;
-
-    if (realArray->count == realArray->capacity) // currently full
-    {
-        SHU_ReturnResult(SHUArray_Resize(array, realArray->capacity * SHUTIL_ARRAY_EXPAND));
-    }
-
-    realArray = *array;
-
-    if (swap)
-    {
-        memcpy(SHUI_ArrayGetItem(realArray, realArray->count), SHUI_ArrayGetItem(realArray, index), realArray->itemSize);
-    }
-    else
-    {
-        memmove(SHUI_ArrayGetItem(realArray, index + 1), SHUI_ArrayGetItem(realArray, index), realArray->count - index * realArray->itemSize);
-    }
-
-    memcpy(SHUI_ArrayGetItem(realArray, index), item, realArray->itemSize);
-
-    realArray->count++;
-
-    return SHUResult_Ok;
+    return SHUArray_InsertRange(array, index, 1, item);
 }
 
 SHUResult SHUArray_InsertRange(SHUArray *array, usz index, usz itemCount, const void *items)
 {
     SHU_AssertNullPointer(array);
     SHU_AssertNullPointer(*array);
-    SHUI_ArrayAssertIndex(*array, index);
     SHU_AssertNullPointer(items);
+    SHUI_ArrayAssertSize(itemCount);
+    if (index != (*array)->count)
+    {
+        SHUI_ArrayAssertIndex(*array, index);
+    }
 
     SHUArray realArray = *array;
     usz newSize = realArray->count + itemCount;
@@ -400,7 +355,9 @@ SHUResult SHUArray_InsertRange(SHUArray *array, usz index, usz itemCount, const 
 
     realArray = *array;
 
-    memmove(SHUI_ArrayGetItem(realArray, index + itemCount), SHUI_ArrayGetItem(realArray, index), realArray->count - index * realArray->itemSize);
+    memmove(SHUI_ArrayGetItem(realArray, index + itemCount),
+            SHUI_ArrayGetItem(realArray, index),
+            (realArray->count - index) * realArray->itemSize);
 
     memcpy(SHUI_ArrayGetItem(realArray, index), items, itemCount * realArray->itemSize);
 
@@ -411,22 +368,74 @@ SHUResult SHUArray_InsertRange(SHUArray *array, usz index, usz itemCount, const 
 
 SHUResult SHUArray_Pop(SHUArray *array, void *retItem)
 {
+    return SHUArray_PopRange(array, 1, retItem);
 }
 
 SHUResult SHUArray_PopRange(SHUArray *array, usz itemCount, void *retItems)
 {
+    SHU_AssertNullPointer(array);
+    SHU_AssertNullPointer(*array);
+    SHUI_ArrayAssertRemoval(*array, itemCount);
+
+    return SHUArray_RemoveRange(array, SHUArray_GetCount(*array) - itemCount, itemCount, retItems, true);
 }
 
-SHUResult ListArray_Remove(SHUArray *array, usz index, void *retItem, bool swap)
+SHUResult SHUArray_Remove(SHUArray *array, usz index, void *retItem, bool swap)
 {
+
+    return SHUArray_RemoveRange(array, index, 1, retItem, swap);
 }
 
-SHUResult ListArray_RemoveRange(SHUArray *array, usz index, usz itemCount, void *retItems)
+SHUResult SHUArray_RemoveRange(SHUArray *array, usz index, usz itemCount, void *retItems, bool swap)
 {
+    SHU_AssertNullPointer(array);
+    SHUI_ArrayAssertSize(itemCount);
+
+    SHUArray realArray = *array;
+    SHU_AssertNullPointer(realArray);
+    SHUI_ArrayAssertIndex(realArray, index);
+    SHUI_ArrayAssertRemoval(realArray, itemCount);
+
+    SHU_Assert(realArray->count > index + itemCount,
+               "Removal range out of bounds :  array.count '%zu', index '%zu', itemCount '%zu'",
+               realArray->count, index, itemCount);
+
+    if (retItems != NULL)
+    {
+        memcpy(retItems, SHUI_ArrayGetItem(realArray, index), itemCount * realArray->itemSize);
+    }
+
+    if (swap)
+    {
+        memcpy(SHUI_ArrayGetItem(realArray, index),
+               SHUI_ArrayGetItem(realArray, realArray->count - itemCount),
+               itemCount * realArray->itemSize);
+    }
+    else
+    {
+        memmove(SHUI_ArrayGetItem(realArray, index),
+                SHUI_ArrayGetItem(realArray, index + itemCount),
+                (realArray->count - index - itemCount) * realArray->itemSize);
+    }
+
+    realArray->count -= itemCount;
+
+    // todo maybe add a minimum size
+    if (realArray->count != 0 && realArray->count < (usz)(realArray->capacity * SHUTIL_ARRAY_SHRINK)) // more than 3/4 empty
+    {
+        SHU_ReturnResult(SHUArray_Resize(array, realArray->count * SHUTIL_ARRAY_EXPAND));
+    }
+
+    return SHUResult_Ok;
 }
 
-SHUResult SHUArray_Clear(SHUArray *array, usz newSize)
+SHUResult SHUArray_Clear(SHUArray *array, usz newCapacity)
 {
+    SHU_AssertNullPointer(array);
+    SHU_AssertNullPointer(*array);
+
+    (*array)->count = 0;
+    return SHUArray_Resize(array, newCapacity);
 }
 
 #endif
