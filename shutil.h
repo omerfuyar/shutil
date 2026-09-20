@@ -53,11 +53,14 @@ typedef struct SHUAllocator
     void (*Free)(void *allocator, SHUSlice *retMemory);
 } SHUAllocator;
 
-#pragma region SHUDefault
-
+/// @brief Allocator for a given specific allocator/type.
+#define SHUAllocator(allocator) _Generic((allocator),                                                                                     \
+    SHUArena: (SHUAllocator){.Allocate = SHUArena_Allocate, .Reallocate = SHUArena_Reallocate, .Free = SHUArena_Free, .data = allocator}, \
+    SHUPool: (SHUAllocator){.Allocate = SHUPool_Allocate, .Reallocate = SHUPool_Reallocate, .Free = SHUPool_Free, .data = allocator},     \
+    default: (SHUAllocator){.Allocate = SHUDefault_Allocate, .Reallocate = SHUDefault_Reallocate, .Free = SHUDefault_Free, .data = NULL})
 // todo rename
-#define SHUDefault_GetAllocator \
-    (SHUAllocator) { .Allocate = SHUDefault_Allocate, .Reallocate = SHUDefault_Reallocate, .Free = SHUDefault_Free, .data = allocator }
+
+#pragma region SHUDefault
 
 SHUResult SHUDefault_Allocate(void *allocator, SHUSlice *retMemory, usz size);
 
@@ -81,8 +84,6 @@ SHUResult SHUArena_Reallocate(void *allocator, SHUSliceView oldMemory, SHUSlice 
 
 void SHUArena_Free(void *allocator, SHUSlice *retMemory);
 
-SHUAllocator SHUArena_GetAllocator(SHUArena allocator);
-
 #pragma endregion SHUArena
 
 #pragma region SHUPool
@@ -98,8 +99,6 @@ SHUResult SHUPool_Allocate(void *allocator, SHUSlice *retMemory, usz size);
 SHUResult SHUPool_Reallocate(void *allocator, SHUSliceView oldMemory, SHUSlice *retMemory, usz newSize);
 
 void SHUPool_Free(void *allocator, SHUSlice *retMemory);
-
-SHUAllocator SHUPool_GetAllocator(SHUPool allocator);
 
 #pragma endregion SHUPool
 
@@ -274,11 +273,6 @@ SHUResult SHUArray_Clear(SHUArray *array, usz newCapacity);
 
 #pragma region SHUDefault
 
-typedef struct SHUI_Default
-{
-    // forward to std
-} SHUI_Default;
-
 SHUResult SHUDefault_Allocate(void *allocator, SHUSlice *retMemory, usz size)
 {
     (void)allocator;
@@ -327,11 +321,17 @@ void SHUDefault_Free(void *allocator, SHUSlice *retMemory)
 
 #pragma region SHUArena
 
+typedef struct SHUI_ArenaChunk
+{
+    SHUI_ArenaChunk *next;
+    usz count;
+    // memory
+} SHUI_ArenaChunk;
+
 typedef struct SHUI_Arena
 {
-    u8 *memory;
-    usz capacity;
-    usz count;
+    SHUI_ArenaChunk *chunkHead;
+    usz chunkCapacity; // bytes
 } SHUI_Arena;
 
 SHUResult SHUArena_Create(SHUArena *retAllocator, usz capacity)
@@ -368,33 +368,30 @@ void SHUArena_Free(void *allocator, SHUSlice *retMemory)
     (void)retMemory;
 }
 
-SHUAllocator SHUArena_GetAllocator(SHUArena allocator)
-{
-    return (SHUAllocator){
-        .Allocate = SHUArena_Allocate,
-        .Reallocate = SHUArena_Reallocate,
-        .Free = SHUArena_Free,
-        .data = allocator};
-}
-
 #pragma endregion SHUArena
 
 #pragma region SHUPool
 
-typedef struct SHUI_AllocatorPoolNode SHUI_AllocatorPoolNode;
+// todo every allocated memory starts after header
 
 typedef struct SHUI_AllocatorPoolNode
 {
     SHUI_AllocatorPoolNode *next;
-    // memory
+    // node memory
 } SHUI_AllocatorPoolNode;
+
+typedef struct SHUI_PoolChunk
+{
+    SHUI_PoolChunk *next;
+    // chunk memory
+} SHUI_PoolChunk;
 
 typedef struct SHUI_Pool
 {
-    u8 *memory;
-    usz blockSize;
-    usz blockCapacity;
+    SHUI_PoolChunk *chunkHead;
     SHUI_AllocatorPoolNode *freeHead;
+    usz blockSize;
+    usz chunkNodeCapacity;
 } SHUI_Pool;
 
 SHUResult SHUPool_Create(SHUPool *retAllocator, usz blockSize, usz blokCapacity)
@@ -430,15 +427,6 @@ void SHUPool_Free(void *allocator, SHUSlice *retMemory)
 {
     (void)allocator;
     (void)retMemory;
-}
-
-SHUAllocator SHUPool_GetAllocator(SHUPool allocator)
-{
-    return (SHUAllocator){
-        .Allocate = SHUPool_Allocate,
-        .Reallocate = SHUPool_Reallocate,
-        .Free = SHUPool_Free,
-        .data = allocator};
 }
 
 #pragma endregion SHUPool
