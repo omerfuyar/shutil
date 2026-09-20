@@ -3,7 +3,7 @@
 // SHUTIL_ARRAY : enables dynamic array data structure
 //             _EXPAND <multiplier> : array expands itself by <multiplier> when it is full, default to 2.0
 //             _SHRINK <fraction> : array shrinks itself by <count * SHUTIL_ARRAY_EXPAND> when only <fraction> of items left in it, default to 0.25
-// SHUTIL_LIST : enables linked array data structure
+// SHUTIL_LIST : enables doubly linked list data structure
 // SHUTIL_STACK : enables stack data structure
 // SHUTIL_QUEUE : enables queue data structure
 // SHUTIL_DEQUE : enables double ended queue data structure
@@ -41,6 +41,71 @@
 #pragma endregion Macros
 
 #pragma region Declarations
+
+#pragma region Allocators
+
+/// @brief The interface needed for memory management.
+typedef struct SHUAllocator
+{
+    void *data;                                                                                         // context of the allocator, like SHUArena pointer.
+    SHUResult (*Allocate)(void *allocator, SHUSlice *retMemory, usz size);                              // Returns SHUResult_ErrAllocation if allocation fails.
+    SHUResult (*Reallocate)(void *allocator, SHUSliceView oldMemory, SHUSlice *retMemory, usz newSize); // Returns SHUResult_ErrAllocation if allocation fails.
+    void (*Free)(void *allocator, SHUSlice *retMemory);
+} SHUAllocator;
+
+#pragma region SHUDefault
+
+// todo rename
+#define SHUDefault_GetAllocator \
+    (SHUAllocator) { .Allocate = SHUDefault_Allocate, .Reallocate = SHUDefault_Reallocate, .Free = SHUDefault_Free, .data = allocator }
+
+SHUResult SHUDefault_Allocate(void *allocator, SHUSlice *retMemory, usz size);
+
+SHUResult SHUDefault_Reallocate(void *allocator, SHUSliceView oldMemory, SHUSlice *retMemory, usz newSize);
+
+void SHUDefault_Free(void *allocator, SHUSlice *retMemory);
+
+#pragma endregion SHUDefault
+
+#pragma region SHUArena
+
+typedef struct SHUI_Arena *SHUArena;
+
+SHUResult SHUArena_Create(SHUArena *retAllocator, usz capacity);
+
+void SHUArena_Destroy(SHUArena *allocator);
+
+SHUResult SHUArena_Allocate(void *allocator, SHUSlice *retMemory, usz size);
+
+SHUResult SHUArena_Reallocate(void *allocator, SHUSliceView oldMemory, SHUSlice *retMemory, usz newSize);
+
+void SHUArena_Free(void *allocator, SHUSlice *retMemory);
+
+SHUAllocator SHUArena_GetAllocator(SHUArena allocator);
+
+#pragma endregion SHUArena
+
+#pragma region SHUPool
+
+typedef struct SHUI_Pool *SHUPool;
+
+SHUResult SHUPool_Create(SHUPool *retAllocator, usz blockSize, usz blokCapacity);
+
+void SHUPool_Destroy(SHUPool *allocator);
+
+SHUResult SHUPool_Allocate(void *allocator, SHUSlice *retMemory, usz size);
+
+SHUResult SHUPool_Reallocate(void *allocator, SHUSliceView oldMemory, SHUSlice *retMemory, usz newSize);
+
+void SHUPool_Free(void *allocator, SHUSlice *retMemory);
+
+SHUAllocator SHUPool_GetAllocator(SHUPool allocator);
+
+#pragma endregion SHUPool
+
+#pragma endregion Allocators
+
+#pragma region Data Structures
 
 #ifdef SHUTIL_ARRAY
 
@@ -197,11 +262,190 @@ SHUResult SHUArray_Clear(SHUArray *array, usz newCapacity);
 
 #endif
 
+#pragma endregion Data Structures
+
 #pragma endregion Declarations
 
 #pragma region Definitions
 
 #ifdef SHU_IMPLEMENTATION
+
+#pragma region Allocators
+
+#pragma region SHUDefault
+
+typedef struct SHUI_Default
+{
+    // forward to std
+} SHUI_Default;
+
+SHUResult SHUDefault_Allocate(void *allocator, SHUSlice *retMemory, usz size)
+{
+    (void)allocator;
+
+    retMemory->data = malloc(size);
+    if (retMemory->data == NULL)
+    {
+        retMemory->size = 0;
+        return SHUResult_ErrAllocation;
+    }
+
+    retMemory->size = size;
+    return SHUResult_Ok;
+}
+
+SHUResult SHUDefault_Reallocate(void *allocator, SHUSliceView oldMemory, SHUSlice *retMemory, usz newSize)
+{
+    (void)allocator;
+
+    retMemory->data = realloc((void *)oldMemory.data, newSize);
+    if (retMemory->data == NULL)
+    {
+        retMemory->size = 0;
+        return SHUResult_ErrAllocation;
+    }
+
+    retMemory->size = newSize;
+    return SHUResult_Ok;
+}
+
+void SHUDefault_Free(void *allocator, SHUSlice *retMemory)
+{
+    (void)allocator;
+
+    if (retMemory == NULL || retMemory->data == NULL)
+    {
+        return;
+    }
+
+    free(retMemory->data);
+    retMemory->data = NULL;
+    retMemory->size = 0;
+}
+
+#pragma endregion SHUDefault
+
+#pragma region SHUArena
+
+typedef struct SHUI_Arena
+{
+    u8 *memory;
+    usz capacity;
+    usz count;
+} SHUI_Arena;
+
+SHUResult SHUArena_Create(SHUArena *retAllocator, usz capacity)
+{
+    (void)capacity;
+    return SHUResult_Ok;
+}
+
+void SHUArena_Destroy(SHUArena *allocator)
+{
+    (void)allocator;
+}
+
+SHUResult SHUArena_Allocate(void *allocator, SHUSlice *retMemory, usz size)
+{
+    (void)allocator;
+    (void)retMemory;
+    (void)size;
+    return SHUResult_Ok;
+}
+
+SHUResult SHUArena_Reallocate(void *allocator, SHUSliceView oldMemory, SHUSlice *retMemory, usz newSize)
+{
+    (void)allocator;
+    (void)oldMemory;
+    (void)retMemory;
+    (void)newSize;
+    return SHUResult_Ok;
+}
+
+void SHUArena_Free(void *allocator, SHUSlice *retMemory)
+{
+    (void)allocator;
+    (void)retMemory;
+}
+
+SHUAllocator SHUArena_GetAllocator(SHUArena allocator)
+{
+    return (SHUAllocator){
+        .Allocate = SHUArena_Allocate,
+        .Reallocate = SHUArena_Reallocate,
+        .Free = SHUArena_Free,
+        .data = allocator};
+}
+
+#pragma endregion SHUArena
+
+#pragma region SHUPool
+
+typedef struct SHUI_AllocatorPoolNode SHUI_AllocatorPoolNode;
+
+typedef struct SHUI_AllocatorPoolNode
+{
+    SHUI_AllocatorPoolNode *next;
+    // memory
+} SHUI_AllocatorPoolNode;
+
+typedef struct SHUI_Pool
+{
+    u8 *memory;
+    usz blockSize;
+    usz blockCapacity;
+    SHUI_AllocatorPoolNode *freeHead;
+} SHUI_Pool;
+
+SHUResult SHUPool_Create(SHUPool *retAllocator, usz blockSize, usz blokCapacity)
+{
+    (void)blockSize;
+    (void)blokCapacity;
+    return SHUResult_Ok;
+}
+
+void SHUPool_Destroy(SHUPool *allocator)
+{
+    (void)allocator;
+}
+
+SHUResult SHUPool_Allocate(void *allocator, SHUSlice *retMemory, usz size)
+{
+    (void)allocator;
+    (void)retMemory;
+    (void)size;
+    return SHUResult_Ok;
+}
+
+SHUResult SHUPool_Reallocate(void *allocator, SHUSliceView oldMemory, SHUSlice *retMemory, usz newSize)
+{
+    (void)allocator;
+    (void)oldMemory;
+    (void)retMemory;
+    (void)newSize;
+    return SHUResult_Ok;
+}
+
+void SHUPool_Free(void *allocator, SHUSlice *retMemory)
+{
+    (void)allocator;
+    (void)retMemory;
+}
+
+SHUAllocator SHUPool_GetAllocator(SHUPool allocator)
+{
+    return (SHUAllocator){
+        .Allocate = SHUPool_Allocate,
+        .Reallocate = SHUPool_Reallocate,
+        .Free = SHUPool_Free,
+        .data = allocator};
+}
+
+#pragma endregion SHUPool
+
+#pragma endregion Allocators
+
+#pragma region Data Structures
 
 #ifdef SHUTIL_ARRAY
 
@@ -396,7 +640,7 @@ SHUResult SHUArray_RemoveRange(SHUArray *array, usz index, usz itemCount, void *
     SHUI_ArrayAssertIndex(realArray, index);
     SHUI_ArrayAssertRemoval(realArray, itemCount);
 
-    SHU_Assert(realArray->count > index + itemCount,
+    SHU_Assert(realArray->count >= (index + itemCount),
                "Removal range out of bounds :  array.count '%zu', index '%zu', itemCount '%zu'",
                realArray->count, index, itemCount);
 
@@ -471,6 +715,8 @@ SHUResult SHUArray_Clear(SHUArray *array, usz newCapacity)
 #ifdef SHUTIL_GRAPH
 
 #endif
+
+#pragma endregion Data Structures
 
 #endif
 
