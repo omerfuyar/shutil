@@ -2,7 +2,7 @@
 
 // SHUTIL_ARRAY : enables dynamic array data structure
 //             _EXPAND <multiplier> : array expands itself by <multiplier> when it is full, default to 2.0
-//             _SHRINK <fraction> : array shrinks itself by <count * SHUTIL_ARRAY_EXPAND> when only <fraction> of items left in it, default to 0.25
+//             _SHRINK <fraction> : array shrinks itself to <count * SHUTIL_ARRAY_EXPAND> when only <fraction> of items left in it, default to 0.25
 // SHUTIL_LIST : enables doubly linked list data structure
 // SHUTIL_STACK : enables stack data structure
 // SHUTIL_QUEUE : enables queue data structure
@@ -64,7 +64,7 @@ typedef struct SHUAllocator
 
 SHUResult SHUDefault_Allocate(void *allocator, SHUSlice *retMemory, usz size);
 
-SHUResult SHUDefault_Reallocate(void *allocator, SHUSliceView oldMemory, SHUSlice *retMemory, usz newSize);
+SHUResult SHUDefault_Reallocate(void *allocator, SHUSlice oldMemory, SHUSlice *retMemory, usz newSize);
 
 void SHUDefault_Free(void *allocator, SHUSlice *retMemory);
 
@@ -290,11 +290,11 @@ SHUResult SHUDefault_Allocate(void *allocator, SHUSlice *retMemory, usz size)
     return SHUResult_Ok;
 }
 
-SHUResult SHUDefault_Reallocate(void *allocator, SHUSliceView oldMemory, SHUSlice *retMemory, usz newSize)
+SHUResult SHUDefault_Reallocate(void *allocator, SHUSlice oldMemory, SHUSlice *retMemory, usz newSize)
 {
     (void)allocator;
 
-    retMemory->data = realloc((void *)oldMemory.data, newSize);
+    retMemory->data = realloc(oldMemory.data, newSize);
     if (retMemory->data == NULL)
     {
         retMemory->size = 0;
@@ -339,6 +339,7 @@ typedef struct SHUI_Arena
 SHUResult SHUArena_Create(SHUArena *retAllocator, usz capacity)
 {
     (void)capacity;
+    (void)retAllocator;
     return SHUResult_Ok;
 }
 
@@ -398,6 +399,7 @@ typedef struct SHUI_Pool
 
 SHUResult SHUPool_Create(SHUPool *retAllocator, usz blockSize, usz blokCapacity)
 {
+    (void)retAllocator;
     (void)blockSize;
     (void)blokCapacity;
     return SHUResult_Ok;
@@ -457,7 +459,7 @@ typedef struct SHUI_Array
 
 #define SHUI_ArrayAssertRemoval(array, itemCount) SHU_Assert((array)->count >= (itemCount),                                                 \
                                                              "Cannot remove more items than existing : array.count '%zu', itemCount '%zu'", \
-                                                             (array)->count, (itemCount));
+                                                             (array)->count, (itemCount))
 
 #define SHUI_ArrayAssertSize(size) SHU_Assert((size) != 0, "0 value for size variable " #size)
 
@@ -591,9 +593,10 @@ SHUResult SHUArray_InsertRange(SHUArray *array, usz index, usz itemCount, const 
 
     if (swap)
     {
-        memmove(SHUI_ArrayGetItem(realArray, realArray->count),
+        usz moveCount = SHUMin(itemCount, realArray->count - index);
+        memmove(SHUI_ArrayGetItem(realArray, realArray->count + itemCount - moveCount),
                 SHUI_ArrayGetItem(realArray, index),
-                itemCount * realArray->itemSize);
+                moveCount * realArray->itemSize);
     }
     else
     {
@@ -650,9 +653,10 @@ SHUResult SHUArray_RemoveRange(SHUArray *array, usz index, usz itemCount, void *
 
     if (swap)
     {
+        usz moveCount = SHUMin(itemCount, realArray->count - index - itemCount);
         memmove(SHUI_ArrayGetItem(realArray, index),
-                SHUI_ArrayGetItem(realArray, realArray->count - itemCount),
-                itemCount * realArray->itemSize);
+                SHUI_ArrayGetItem(realArray, realArray->count - moveCount),
+                moveCount * realArray->itemSize);
     }
     else
     {

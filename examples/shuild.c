@@ -27,10 +27,11 @@ int main(int argc, char **argv)
     SHU_CompilerTryConfigure("gcc");
     SHU_UtilAutomate(argc, argv);
 
-    SHU_CompilerAddFlags(SHUM_FLAGS_OPTIMIZATION_HIGH);
-    SHU_CompilerAddFlags("-Wno-unused-function -Wno-format-truncation");
+    SHU_CompilerAddFlags(SHUM_FLAGS_WARNING_LOW);
+    SHU_CompilerAddFlags("-Wno-unused-function -Wno-format-truncation" SHUM_FLAGS_DEBUG SHUM_FLAGS_STANDARD_C23);
+    SHU_CompilerAddDefinitions("SHU_IMPLEMENTATION", NULL);
 
-    ShuildExample("SHUArray");
+    ShuildExample("1_SHUArray");
 
     return 0;
 }
