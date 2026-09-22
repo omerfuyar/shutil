@@ -180,16 +180,18 @@ SHUResult SHUArray_PushRange(SHUArray *array, usz itemCount, const void *items);
 /// @param array Pointer to the SHUArray to insert item to.
 /// @param index Index to insert item at.
 /// @param item Pointer to the item to insert.
+/// @param swap Puts the indexed items to tail if true, shifts all the latter items otherwise.
 /// @return SHUResult_Ok on success, or SHUResult_ErrAllocation if internal allocation fails.
-SHUResult SHUArray_Insert(SHUArray *array, usz index, const void *item);
+SHUResult SHUArray_Insert(SHUArray *array, usz index, const void *item, bool swap);
 
 /// @brief Adds a range of items at a specific index in the SHUArray. Shifting the tail part.
 /// @param array Pointer to the SHUArray to insert item to.
 /// @param index Index to insert item at.
 /// @param itemCount Number of items to insert.
 /// @param items Pointer to the first item to insert.
+/// @param swap Puts the indexed items to tail if true, shifts all the latter items otherwise.
 /// @return SHUResult_Ok on success, or SHUResult_ErrAllocation if internal allocation fails.
-SHUResult SHUArray_InsertRange(SHUArray *array, usz index, usz itemCount, const void *items);
+SHUResult SHUArray_InsertRange(SHUArray *array, usz index, usz itemCount, const void *items, bool swap);
 
 /// @brief Removes the last item in the array.
 /// @param array Pointer to the SHUArray to pop item from.
@@ -323,7 +325,7 @@ void SHUDefault_Free(void *allocator, SHUSlice *retMemory)
 
 typedef struct SHUI_ArenaChunk
 {
-    SHUI_ArenaChunk *next;
+    struct SHUI_ArenaChunk *next;
     usz count;
     // memory
 } SHUI_ArenaChunk;
@@ -376,19 +378,19 @@ void SHUArena_Free(void *allocator, SHUSlice *retMemory)
 
 typedef struct SHUI_AllocatorPoolNode
 {
-    SHUI_AllocatorPoolNode *next;
+    struct SHUI_AllocatorPoolNode *next;
     // node memory
 } SHUI_AllocatorPoolNode;
 
 typedef struct SHUI_PoolChunk
 {
-    SHUI_PoolChunk *next;
+    struct SHUI_PoolChunk *next;
     // chunk memory
 } SHUI_PoolChunk;
 
 typedef struct SHUI_Pool
 {
-    SHUI_PoolChunk *chunkHead;
+    struct SHUI_PoolChunk *chunkHead;
     SHUI_AllocatorPoolNode *freeHead;
     usz blockSize;
     usz chunkNodeCapacity;
@@ -558,15 +560,15 @@ SHUResult SHUArray_PushRange(SHUArray *array, usz itemCount, const void *items)
 {
     SHU_AssertNullPointer(array);
 
-    return SHUArray_InsertRange(array, SHUArray_GetCount(*array), itemCount, items);
+    return SHUArray_InsertRange(array, SHUArray_GetCount(*array), itemCount, items, true);
 }
 
-SHUResult SHUArray_Insert(SHUArray *array, usz index, const void *item)
+SHUResult SHUArray_Insert(SHUArray *array, usz index, const void *item, bool swap)
 {
-    return SHUArray_InsertRange(array, index, 1, item);
+    return SHUArray_InsertRange(array, index, 1, item, swap);
 }
 
-SHUResult SHUArray_InsertRange(SHUArray *array, usz index, usz itemCount, const void *items)
+SHUResult SHUArray_InsertRange(SHUArray *array, usz index, usz itemCount, const void *items, bool swap)
 {
     SHU_AssertNullPointer(array);
     SHU_AssertNullPointer(*array);
@@ -587,9 +589,18 @@ SHUResult SHUArray_InsertRange(SHUArray *array, usz index, usz itemCount, const 
 
     realArray = *array;
 
-    memmove(SHUI_ArrayGetItem(realArray, index + itemCount),
-            SHUI_ArrayGetItem(realArray, index),
-            (realArray->count - index) * realArray->itemSize);
+    if (swap)
+    {
+        memmove(SHUI_ArrayGetItem(realArray, realArray->count),
+                SHUI_ArrayGetItem(realArray, index),
+                itemCount * realArray->itemSize);
+    }
+    else
+    {
+        memmove(SHUI_ArrayGetItem(realArray, index + itemCount),
+                SHUI_ArrayGetItem(realArray, index),
+                (realArray->count - index) * realArray->itemSize);
+    }
 
     memcpy(SHUI_ArrayGetItem(realArray, index), items, itemCount * realArray->itemSize);
 
@@ -639,9 +650,9 @@ SHUResult SHUArray_RemoveRange(SHUArray *array, usz index, usz itemCount, void *
 
     if (swap)
     {
-        memcpy(SHUI_ArrayGetItem(realArray, index),
-               SHUI_ArrayGetItem(realArray, realArray->count - itemCount),
-               itemCount * realArray->itemSize);
+        memmove(SHUI_ArrayGetItem(realArray, index),
+                SHUI_ArrayGetItem(realArray, realArray->count - itemCount),
+                itemCount * realArray->itemSize);
     }
     else
     {
