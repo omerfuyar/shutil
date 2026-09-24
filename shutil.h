@@ -54,7 +54,7 @@ typedef struct SHUAllocator
 } SHUAllocator;
 
 /// @brief Allocator for a given specific allocator/type.
-#define SHUAllocator(allocator) _Generic((allocator),                                                                                     \
+#define SHUAllocatorGet(allocator) _Generic((allocator),                                                                                  \
     SHUArena: (SHUAllocator){.Allocate = SHUArena_Allocate, .Reallocate = SHUArena_Reallocate, .Free = SHUArena_Free, .data = allocator}, \
     SHUPool: (SHUAllocator){.Allocate = SHUPool_Allocate, .Reallocate = SHUPool_Reallocate, .Free = SHUPool_Free, .data = allocator},     \
     default: (SHUAllocator){.Allocate = SHUDefault_Allocate, .Reallocate = SHUDefault_Reallocate, .Free = SHUDefault_Free, .data = NULL})
@@ -333,7 +333,7 @@ typedef struct SHUI_ArenaChunk
 typedef struct SHUI_Arena
 {
     SHUI_ArenaChunk *chunkHead;
-    usz chunkCapacity; // bytes
+    usz chunkCapacity; // in bytes
 } SHUI_Arena;
 
 SHUResult SHUArena_Create(SHUArena *retAllocator, usz capacity)

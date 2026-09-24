@@ -1,3 +1,4 @@
+#define SHU_IMPLEMENTATION
 #define SHUTIL_ARRAY
 #include "../shutil.h"
 
